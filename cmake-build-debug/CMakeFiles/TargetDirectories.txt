@@ -1,0 +1,3 @@
+C:/Users/Cyrille Champion/Desktop/C_XML_Project/cmake-build-debug/CMakeFiles/C_XML_Project.dir
+C:/Users/Cyrille Champion/Desktop/C_XML_Project/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Cyrille Champion/Desktop/C_XML_Project/cmake-build-debug/CMakeFiles/rebuild_cache.dir

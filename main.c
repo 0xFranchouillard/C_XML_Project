@@ -1,56 +1,171 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-struct Prop{
+struct XML{
     char* name;
+    int value;
+    struct XML* parent;
+    struct XML** enfant;
+    int taille_alloue;
+    int taille_enfant;
 };
-typedef struct Prop Prop;
+typedef struct XML XML;
 
-void property(const char* line, Prop* p){
-    char c;
-    int i = 0, j = 0, start = 0, zap = 0;
+void free_XML(XML* xml){
+    free(xml->name);
+    for (int i = 0; i < xml->taille_enfant; ++i) {
+        free_XML(xml->enfant[i]);
+    }
+    free(xml);
+}
 
-    while(line[i] != '>'){
-        if(!start){
-            while (line[i++] != '<' && line[i] != '\0'){}
-            start++;
+XML* create_XML_tree(XML* parent){
+    XML* xml = malloc(sizeof(XML));
+    xml->parent = parent;
+    xml->name = NULL;
+    xml->value = 0;
+    xml->taille_alloue = 1;
+    xml->taille_enfant = 0;
+    xml->enfant = malloc(sizeof(XML*)*xml->taille_alloue);
+    if(parent != NULL){
+        while(parent->taille_enfant >= parent->taille_alloue){
+            parent->taille_alloue *= 2;
         }
-        while (line[i++] != ' ' && line[i] != '\0') {}
-        if(line[i-1] == ' '){
-            while ((c = line[i]) != '=' && zap == 0){
-                if(c == ' '){
-                    zap++;
-                }printf("%s", p[j].name);
-                sprintf(p[j].name,"%s%c",p[j].name,c);
-                i++;
-            }
-            j++;
-        } else{
-            i++;
+        XML** enfant_tmp = malloc(sizeof(XML*) * parent->taille_alloue);
+        for (int i = 0; i < parent->taille_alloue; ++i) {
+            enfant_tmp[i] = parent->enfant[i];
+        }
+        free(xml->enfant);
+        parent->enfant = enfant_tmp;
+        parent->enfant[parent->taille_enfant] = xml;
+        parent->taille_enfant += 1;
+    }
+    return xml;
+}
+
+FILE* open_XML(){
+    printf("Veuillez entrez le chemin du fichier XML : ");
+    char* path[255];
+    gets(path);
+    FILE* file = fopen(path,"r+");
+    return file;
+}
+
+XML* balise_fermante(int* cpt_xml, char* xml, int* cpt_tmp, char* tmp, XML* var){
+
+    if(var == NULL){
+        printf("Racine atteinte");
+        exit(0);
+    }
+
+    *cpt_xml += 2;
+
+    while(xml[*cpt_xml] != '>'){
+        tmp[*cpt_tmp] = xml[*cpt_xml];
+        *cpt_tmp += 1;
+        *cpt_xml += 1;
+
+        if(*cpt_xml == strlen(xml)){
+            printf("Fichier terminé sans balise fermante");
+            exit(0);
         }
     }
+    tmp[*cpt_tmp] = '\0';
+    if(strcmp(tmp,var->name) != 0){
+        //printf("%s\"%s\"\n",var->name, tmp);
+        printf("Balise ouvrante != de balise fermante");
+        exit(0);
+    }
+    var = var->parent;
+    return var;
 }
 
+XML* balise_ouvrante(int* cpt_xml, char* xml, int* cpt_tmp, char* tmp, XML* var){
+    *cpt_xml += 1;
 
-void printProp(Prop* p){
-    printf("%s",p->name);
+    if(var->name != NULL) {
+        var = create_XML_tree(var);
+    }
+    while (xml[*cpt_xml] != '>'){
+        tmp[*cpt_tmp] = xml[*cpt_xml];
+        *cpt_tmp += 1;
+        *cpt_xml += 1;
+    }
+    tmp[*cpt_tmp] = '\0';
+    var->name = strdup(tmp);
+    *cpt_tmp = 0;
+    *cpt_xml += 1;
+
+    return var;
 }
+
+void parse_XML(char* xml, XML* var){
+    char tmp[300];
+    int cpt_tmp = 0;
+    int cpt_xml = 0;
+
+    while (xml[cpt_xml] != '\0'){
+        if(xml[cpt_xml] == '<'){
+            tmp[cpt_tmp] = '\0';
+            if(cpt_tmp > 0){
+                if(var == NULL){
+                    printf("Erreur, texte en dehors de balises");
+                    exit(0);
+                }
+                if(var->name != NULL){
+                    var->value = 1;
+                }
+                cpt_tmp = 0;
+            }
+            if(xml[cpt_xml+1] == '?'){
+                while (xml[cpt_xml++] != '>'){}
+            }
+            if(xml[cpt_xml+1] == '/'){
+                var = balise_fermante(&cpt_xml,xml,&cpt_tmp,tmp,var);
+            }else{
+                var = balise_ouvrante(&cpt_xml,xml,&cpt_tmp,tmp,var);
+            }
+            cpt_tmp = 0;
+            cpt_xml += 1;
+        } else {
+            tmp[cpt_tmp++] = xml[cpt_xml++];
+        }
+    }
+
+}
+
+void read_XML(XML* root){ // a standartisé
+    FILE* file = open_XML();
+    if(file == NULL){
+        printf("Erreur d'allocation");
+        exit(0);
+    }
+    XML* var = root;
+    fseek(file,0,SEEK_END);
+    long size = ftell(file);
+    fseek(file,0,SEEK_SET);
+
+    char* xml = malloc(sizeof(char)*size+1);
+    fread(xml,1,size,file);
+    xml[size] = '\0';
+    fclose(file);
+
+    parse_XML(xml,var);
+}
+
 
 int main() {
-    char* line = malloc(sizeof(char) * 200);
-    FILE* fo = fopen("../file.xml","r+");
+    XML* var = create_XML_tree(NULL);
+    XML* root = var;
 
-    if(fo == NULL) return -1;
+    read_XML(root);
 
-    while((fgets(line,200,fo)) != NULL){
-        printf("%s",line);
-        Prop* p = malloc(sizeof(property));
-        property(line,p);
-        printProp(p);
-        free(p);
+    printf("%s : ", root->name);
+    for (int i = 0; i < root->taille_enfant; ++i) {
+        printf("%s",root->enfant[i]->name);
     }
 
-    fclose(fo);
-
+    free_XML(root);
     return 0;
 }

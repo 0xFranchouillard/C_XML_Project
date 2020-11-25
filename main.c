@@ -63,7 +63,7 @@ XML* create_XML_tree(XML* parent){
 }
 
 FILE* open_XML(){
-    printf("Veuillez entrez le chemin du fichier XML : ");
+    printf("Veuillez entrez le chemin du fichier XML :  ");
     char* path[255];
     gets(path);
     FILE* file = fopen(path,"r+");
@@ -91,7 +91,7 @@ XML* balise_fermante(int* cpt_xml, char* xml, int* cpt_tmp, char* tmp, XML* var)
     }
     tmp[*cpt_tmp] = '\0';
     if(strcmp(tmp,var->name) != 0){
-        printf("%s\"%s\"\n",var->name, tmp);
+        //printf("%s\"%s\"\n",var->name, tmp);
         printf("Balise ouvrante != de balise fermante");
         exit(0);
     }
@@ -162,8 +162,20 @@ void getValue_ELEMENT(char* file, int* cpt_file, DTD* dtd, char* tmp, int* cpt_t
         *cpt_tmp = 0;
     }
 }
-void addElement_listDtd(list_DTD* listDtd,DTD* dtd){
 
+void addElement_listDtd(list_DTD* listDtd,DTD* dtd){
+    while(listDtd->taille_tab_DTD >= listDtd->taille_alloue){
+        listDtd->taille_alloue *= 2;
+    }
+    list_DTD* value_tmp = malloc(sizeof(list_DTD*)*listDtd->taille_alloue);
+
+    for (int i = 0; i < listDtd->taille_tab_DTD; ++i) {
+        value_tmp[i].tab_DTD = listDtd->tab_DTD;
+    }
+
+    free(listDtd->tab_DTD);
+    listDtd->tab_DTD = value_tmp;
+    listDtd->tab_DTD[listDtd->taille_tab_DTD] = *dtd;
 }
 
 void get_ELEMENT(list_DTD* listDtd, char* file, int* cpt_file){
@@ -195,7 +207,7 @@ void get_ELEMENT(list_DTD* listDtd, char* file, int* cpt_file){
     cpt_tmp++;
 }
 
-int parse_DTD(list_DTD* listDtd, char* file, int type){
+int parse_DTD(list_DTD* listDtd, char* file){
     char tmp[300];
     int cpt_file = 0;
     int cpt_tmp = 0;
@@ -221,7 +233,6 @@ int parse_DTD(list_DTD* listDtd, char* file, int type){
     } else {
         return 0;
     }
-
 }
 
 void parse_XML(char* xml, XML* var,list_DTD* listDtd){
@@ -250,7 +261,6 @@ void parse_XML(char* xml, XML* var,list_DTD* listDtd){
                 PATH_DTD[cpt_dtd] = '\0';
                 cpt_xml++;
                 printf("\n");
-                ///test open DTD EXTERNE -> OK
                 FILE* dtd = fopen(PATH_DTD,"r+");
                 if(dtd != NULL){
                     fseek(dtd,0,SEEK_END);
@@ -260,20 +270,20 @@ void parse_XML(char* xml, XML* var,list_DTD* listDtd){
                     char* filedtd = malloc(sizeof(char)*size+1);
                     fread(filedtd,1,size,dtd);
                     filedtd[size] = '\0';
-                    cpt_xml += parse_DTD(listDtd,filedtd,1);
+                    cpt_xml += parse_DTD(listDtd,filedtd);
+                    //printf("%s\n",filedtd);
                     continue;
                     } else {
-                    printf("Erreur DTD allocation");
-                    exit(0);
-                }
+                        printf("Erreur DTD allocation");
+                        exit(0);
+                    }
             } else if (xml[cpt_xml+1] == '[') {
-                cpt_xml += parse_DTD(listDtd, xml, 0);
+                cpt_xml += parse_DTD(listDtd, xml);
                 continue;
             }
 
             if(cpt_tmp > 0){
                 if(var == NULL){
-                    printf("%s",tmp);
                     printf("Erreur, texte en dehors de balises");
                     exit(0);
                 }
@@ -297,10 +307,10 @@ void parse_XML(char* xml, XML* var,list_DTD* listDtd){
             }
         }
     }
-    strncmp(PATH_DTD,"INT",3)!=NULL?printf("<---  %s  --->\n",PATH_DTD):printf("DTD INTERNE\n");
+    strstr(PATH_DTD,"INT")==NULL?printf("<---  %s  --->\n",PATH_DTD):printf("DTD INTERNE\n");
 }
 
-void read_XML(XML* root,list_DTD* listDtd){ // a standartisé
+void read_XML(XML* root,list_DTD* listDtd){
     FILE* file = open_XML();
     if(file == NULL){
         printf("Erreur d'allocation");
@@ -331,7 +341,7 @@ int main() {
     read_XML(root,listDtd);
 
     for (int i = 0; i < listDtd->taille_tab_DTD ; i++){
-        printf("\n%s",listDtd->tab_DTD[i].name);
+        printf("\n%s ->",listDtd->tab_DTD[i].name);
     }
 
     printf("%s : ", root->name);
@@ -340,5 +350,6 @@ int main() {
     }
 
     free_XML(root);
+    printf("\nOK");
     return 0;
 }

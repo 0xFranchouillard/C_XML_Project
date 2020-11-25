@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE ESGI [
-        <!ELEMENT classrooms (classroom+)>
-        <!ELEMENT classroom (#PCDATA)>
-        ]>
+<!DOCTYPE classrooms SYSTEM "../file.dtd">
 <classrooms>
     <classroom>AL</classroom>
     <classroom>IABD</classroom>

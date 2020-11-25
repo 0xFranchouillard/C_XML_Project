@@ -73,7 +73,7 @@ XML* balise_fermante(int* cpt_xml, char* xml, int* cpt_tmp, char* tmp, XML* var)
     }
     tmp[*cpt_tmp] = '\0';
     if(strcmp(tmp,var->name) != 0){
-        //printf("%s\"%s\"\n",var->name, tmp);
+        printf("%s\"%s\"\n",var->name, tmp);
         printf("Balise ouvrante != de balise fermante");
         exit(0);
     }
@@ -108,6 +108,10 @@ void parse_XML(char* xml, XML* var){
     while (xml[cpt_xml] != '\0'){
         if(xml[cpt_xml] == '<'){
             tmp[cpt_tmp] = '\0';
+            if(xml[cpt_xml+1] == '?'){
+                while (xml[cpt_xml++] != '>'){}
+                cpt_xml++;
+            }
             if(cpt_tmp > 0){
                 if(var == NULL){
                     printf("Erreur, texte en dehors de balises");
@@ -117,9 +121,6 @@ void parse_XML(char* xml, XML* var){
                     var->value = 1;
                 }
                 cpt_tmp = 0;
-            }
-            if(xml[cpt_xml+1] == '?'){
-                while (xml[cpt_xml++] != '>'){}
             }
             if(xml[cpt_xml+1] == '/'){
                 var = balise_fermante(&cpt_xml,xml,&cpt_tmp,tmp,var);
